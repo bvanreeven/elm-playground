@@ -13,6 +13,7 @@ import Color
 import Time
 import AnimationFrame
 import Keyboard.Extra
+import Mouse
 
 
 type alias Point =
@@ -31,13 +32,19 @@ type Msg
     = Nothing
     | Tick Time.Time
     | KeyboardExtraMsg Keyboard.Extra.Msg
+    | MouseClick Mouse.Position
     | WindowSizeChange Window.Size
 
 
 init : ( Model, Cmd Msg )
 init =
-    { window = Window.Size -1 -1, ball = { radius = 50, location = { x = 0, y = 0 }, velocity = 0, color = Color.blue } }
+    { window = Window.Size -1 -1, ball = initBall 50 { x = 0, y = 0 } Color.red }
         ! [ Window.size |> Task.Extra.performFailproof WindowSizeChange ]
+
+
+initBall : Float -> Point -> Color.Color -> Ball
+initBall radius location color =
+    { radius = radius, location = location, velocity = 0, color = color }
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -52,8 +59,16 @@ update msg model =
         KeyboardExtraMsg keyboardMsg ->
             model ! []
 
+        MouseClick position ->
+            { model | ball = initBall 50 (mousePositionToPoint model.window position) Color.green } ! []
+
         WindowSizeChange newSize ->
             { model | window = newSize } ! []
+
+
+mousePositionToPoint : Window.Size -> Mouse.Position -> Point
+mousePositionToPoint window position =
+    { x = toFloat position.x - toFloat window.width / 2, y = toFloat -position.y + toFloat window.height / 2 }
 
 
 step : Float -> Model -> Model
@@ -140,6 +155,7 @@ subscriptions model =
     Sub.batch
         [ Window.resizes WindowSizeChange
         , Sub.map KeyboardExtraMsg Keyboard.Extra.subscriptions
+        , Mouse.clicks MouseClick
         , AnimationFrame.diffs (Tick << Time.inSeconds)
         ]
 
