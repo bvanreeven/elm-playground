@@ -25,7 +25,7 @@ type alias Ball =
 
 
 type alias Model =
-    { window : Window.Size, ball : Ball }
+    { window : Window.Size, balls : List Ball }
 
 
 type Msg
@@ -38,7 +38,7 @@ type Msg
 
 init : ( Model, Cmd Msg )
 init =
-    { window = Window.Size -1 -1, ball = initBall 50 { x = 0, y = 0 } Color.red }
+    { window = Window.Size -1 -1, balls = [ initBall 50 { x = 0, y = 0 } Color.red ] }
         ! [ Window.size |> Task.Extra.performFailproof WindowSizeChange ]
 
 
@@ -60,10 +60,23 @@ update msg model =
             model ! []
 
         MouseClick position ->
-            { model | ball = initBall 50 (mousePositionToPoint model.window position) Color.green } ! []
+            { model | balls = initBall 50 (mousePositionToPoint model.window position) (nextColor position) :: model.balls } ! []
 
         WindowSizeChange newSize ->
             { model | window = newSize } ! []
+
+
+nextColor : Mouse.Position -> Color.Color
+nextColor pos =
+    case pos.x % 3 of
+        0 ->
+            Color.red
+
+        1 ->
+            Color.green
+
+        _ ->
+            Color.blue
 
 
 mousePositionToPoint : Window.Size -> Mouse.Position -> Point
@@ -81,7 +94,7 @@ step delta model =
 
 gravity : Float -> Model -> Model
 gravity delta model =
-    { model | ball = ballGravity delta model.ball }
+    { model | balls = model.balls |> List.map (ballGravity delta) }
 
 
 ballGravity : Float -> Ball -> Ball
@@ -91,7 +104,7 @@ ballGravity delta ball =
 
 physics : Float -> Model -> Model
 physics delta model =
-    { model | ball = ballPhysics delta model.ball }
+    { model | balls = model.balls |> List.map (ballPhysics delta) }
 
 
 ballPhysics : Float -> Ball -> Ball
@@ -109,7 +122,7 @@ collision delta model =
         floorY =
             toFloat model.window.height / -2
     in
-        { model | ball = ballCollision delta floorY model.ball }
+        { model | balls = model.balls |> List.map (ballCollision delta floorY) }
 
 
 ballCollision : Float -> Float -> Ball -> Ball
@@ -138,7 +151,9 @@ view model =
     in
         -- Html.h1 [] [ Html.text ("Window size: " ++ (toString model.window)) ]
         Html.div []
-            [ Collage.collage width height [ ballView model.ball ]
+            [ model.balls
+                |> List.map ballView
+                |> Collage.collage width height
                 |> Element.toHtml
             ]
 
