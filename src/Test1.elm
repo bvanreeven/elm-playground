@@ -20,7 +20,7 @@ type alias Point =
 
 
 type alias Ball =
-    { location : Point, velocity : Float }
+    { location : Point, velocity : Float, radius: Float }
 
 
 type alias Model =
@@ -36,7 +36,7 @@ type Msg
 
 init : ( Model, Cmd Msg )
 init =
-    { window = Window.Size -1 -1, ball = { location = { x = 0, y = 0 }, velocity = 0 } } ! [ Window.size |> Task.Extra.performFailproof WindowSizeChange ]
+    { window = Window.Size -1 -1, ball = { radius = 50, location = { x = 0, y = 0 }, velocity = 0 } } ! [ Window.size |> Task.Extra.performFailproof WindowSizeChange ]
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -91,7 +91,7 @@ collision : Float -> Model -> Model
 collision delta model =
     let
         floorY =
-            toFloat model.window.height / -2 + 50
+            toFloat model.window.height / -2
     in
         { model | ball = ballCollision delta floorY model.ball }
 
@@ -101,9 +101,11 @@ ballCollision delta floorY ball =
     let
         location =
             ball.location
+        bottomY =
+            location.y - ball.radius
     in
-        if location.y <= floorY then
-            { ball | location = { location | y = floorY }, velocity = ball.velocity * -0.9 }
+        if bottomY <= floorY then
+            { ball | location = { location | y = floorY + ball.radius }, velocity = ball.velocity * -0.9 }
         else
             ball
 
@@ -121,7 +123,7 @@ view model =
         Html.div []
             [ Collage.collage width
                 height
-                [ Collage.circle 50
+                [ Collage.circle model.ball.radius
                     |> Collage.filled Color.red
                     |> Collage.move ( model.ball.location.x, model.ball.location.y )
                 ]
