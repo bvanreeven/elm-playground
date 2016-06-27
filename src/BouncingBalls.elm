@@ -37,7 +37,7 @@ init =
             Keyboard.Extra.init
 
         model =
-            { window = Window.Size -1 -1, balls = [ Ball.init 50 { x = 0, y = 0 } Color.red ], keyboard = keyboardModel }
+            { window = Window.Size -1 -1, balls = [ Ball.init 50 (Point 0 0) Color.red ], keyboard = keyboardModel }
     in
         model ! [ Window.size |> Task.Extra.performFailproof WindowSizeChange, Cmd.map KeyboardExtraMsg keyboardCmd ]
 
