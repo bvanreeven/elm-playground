@@ -1,6 +1,6 @@
 module Main exposing (..)
 
-{-| Show the updated window size
+{-| Bouncing balls!
 -}
 
 import Html
@@ -14,14 +14,8 @@ import Time
 import AnimationFrame
 import Keyboard.Extra
 import Mouse
-
-
-type alias Point =
-    { x : Float, y : Float }
-
-
-type alias Ball =
-    { location : Point, velocity : Float, radius : Float, color : Color.Color }
+import Ball exposing (Ball)
+import Point exposing (Point)
 
 
 type alias Model =
@@ -43,14 +37,9 @@ init =
             Keyboard.Extra.init
 
         model =
-            { window = Window.Size -1 -1, balls = [ initBall 50 { x = 0, y = 0 } Color.red ], keyboard = keyboardModel }
+            { window = Window.Size -1 -1, balls = [ Ball.init 50 { x = 0, y = 0 } Color.red ], keyboard = keyboardModel }
     in
         model ! [ Window.size |> Task.Extra.performFailproof WindowSizeChange, Cmd.map KeyboardExtraMsg keyboardCmd ]
-
-
-initBall : Float -> Point -> Color.Color -> Ball
-initBall radius location color =
-    { radius = radius, location = location, velocity = 0, color = color }
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -66,7 +55,7 @@ update msg model =
             updateKeys keyMsg model
 
         MouseClick position ->
-            { model | balls = initBall 50 (mousePositionToPoint model.window position) (nextColor position) :: model.balls } ! []
+            { model | balls = Ball.init 50 (mousePositionToPoint model.window position) (nextColor position) :: model.balls } ! []
 
         WindowSizeChange newSize ->
             { model | window = newSize } ! []
@@ -109,26 +98,12 @@ step delta model =
 
 gravity : Float -> Model -> Model
 gravity delta model =
-    { model | balls = model.balls |> List.map (ballGravity delta) }
-
-
-ballGravity : Float -> Ball -> Ball
-ballGravity delta ball =
-    { ball | velocity = ball.velocity - 9.81 * delta }
+    { model | balls = model.balls |> List.map (Ball.gravity delta) }
 
 
 physics : Float -> Model -> Model
 physics delta model =
-    { model | balls = model.balls |> List.map (ballPhysics delta) }
-
-
-ballPhysics : Float -> Ball -> Ball
-ballPhysics delta ball =
-    let
-        location =
-            ball.location
-    in
-        { ball | location = { location | y = location.y + ball.velocity * delta * 100 } }
+    { model | balls = model.balls |> List.map (Ball.physics delta) }
 
 
 collision : Float -> Model -> Model
@@ -137,22 +112,7 @@ collision delta model =
         floorY =
             toFloat model.window.height / -2
     in
-        { model | balls = model.balls |> List.map (ballCollision delta floorY) }
-
-
-ballCollision : Float -> Float -> Ball -> Ball
-ballCollision delta floorY ball =
-    let
-        location =
-            ball.location
-
-        bottomY =
-            location.y - ball.radius
-    in
-        if bottomY <= floorY then
-            { ball | location = { location | y = floorY + ball.radius }, velocity = ball.velocity * -0.9 }
-        else
-            ball
+        { model | balls = model.balls |> List.map (Ball.collision delta floorY) }
 
 
 view : Model -> Html.Html Msg
@@ -164,20 +124,12 @@ view model =
         height =
             model.window.height
     in
-        -- Html.h1 [] [ Html.text ("Window size: " ++ (toString model.window)) ]
         Html.div []
             [ model.balls
-                |> List.map ballView
+                |> List.map Ball.view
                 |> Collage.collage width height
                 |> Element.toHtml
             ]
-
-
-ballView : Ball -> Collage.Form
-ballView ball =
-    Collage.circle ball.radius
-        |> Collage.filled ball.color
-        |> Collage.move ( ball.location.x, ball.location.y )
 
 
 subscriptions : Model -> Sub Msg
