@@ -25,7 +25,7 @@ type alias Ball =
 
 
 type alias Model =
-    { window : Window.Size, balls : List Ball }
+    { window : Window.Size, balls : List Ball, keyboard : Keyboard.Extra.Model }
 
 
 type Msg
@@ -38,8 +38,14 @@ type Msg
 
 init : ( Model, Cmd Msg )
 init =
-    { window = Window.Size -1 -1, balls = [ initBall 50 { x = 0, y = 0 } Color.red ] }
-        ! [ Window.size |> Task.Extra.performFailproof WindowSizeChange ]
+    let
+        ( keyboardModel, keyboardCmd ) =
+            Keyboard.Extra.init
+
+        model =
+            { window = Window.Size -1 -1, balls = [ initBall 50 { x = 0, y = 0 } Color.red ], keyboard = keyboardModel }
+    in
+        model ! [ Window.size |> Task.Extra.performFailproof WindowSizeChange, Cmd.map KeyboardExtraMsg keyboardCmd ]
 
 
 initBall : Float -> Point -> Color.Color -> Ball
@@ -56,14 +62,23 @@ update msg model =
         Tick delta ->
             step delta model ! []
 
-        KeyboardExtraMsg keyboardMsg ->
-            model ! []
+        KeyboardExtraMsg keyMsg ->
+            updateKeys keyMsg model
 
         MouseClick position ->
             { model | balls = initBall 50 (mousePositionToPoint model.window position) (nextColor position) :: model.balls } ! []
 
         WindowSizeChange newSize ->
             { model | window = newSize } ! []
+
+
+updateKeys : Keyboard.Extra.Msg -> Model -> ( Model, Cmd Msg )
+updateKeys keyMsg model =
+    let
+        ( keyboardModel, keyboardCmd ) =
+            Keyboard.Extra.update keyMsg model.keyboard
+    in
+        { model | keyboard = keyboardModel } ! [ Cmd.map KeyboardExtraMsg keyboardCmd ]
 
 
 nextColor : Mouse.Position -> Color.Color
