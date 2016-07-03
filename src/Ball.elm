@@ -14,6 +14,14 @@ init radius location color =
     { radius = radius, location = location, velocity = 0, color = color }
 
 
+update : Float -> Float -> Ball -> Ball
+update delta floorY ball =
+    ball
+        |> gravity delta
+        |> physics delta
+        |> collision delta floorY
+
+
 gravity : Float -> Ball -> Ball
 gravity delta ball =
     { ball | velocity = ball.velocity - 9.81 * delta }

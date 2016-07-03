@@ -90,29 +90,11 @@ mousePositionToPoint window position =
 
 step : Float -> Model -> Model
 step delta model =
-    model
-        |> gravity delta
-        |> physics delta
-        |> collision delta
-
-
-gravity : Float -> Model -> Model
-gravity delta model =
-    { model | balls = model.balls |> List.map (Ball.gravity delta) }
-
-
-physics : Float -> Model -> Model
-physics delta model =
-    { model | balls = model.balls |> List.map (Ball.physics delta) }
-
-
-collision : Float -> Model -> Model
-collision delta model =
     let
         floorY =
             toFloat model.window.height / -2
     in
-        { model | balls = model.balls |> List.map (Ball.collision delta floorY) }
+        { model | balls = model.balls |> List.map (Ball.update delta floorY) }
 
 
 view : Model -> Html.Html Msg
